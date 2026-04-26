@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知库 - AI Agent 知识维基</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <!-- App Container -->
+  <div id="app" data-theme="light">
+    <!-- Top Bar -->
+    <header id="topbar">
+      <div class="topbar-left">
+        <button id="sidebar-toggle" class="icon-btn" title="切换侧边栏">☰</button>
+        <div class="logo">
+          <span class="logo-icon">📚</span>
+          <span class="logo-text">知库</span>
+          <span class="logo-badge">BETA</span>
+        </div>
+      </div>
+      <div class="topbar-center">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="搜索笔记、标签或内容...">
+          <button id="search-clear" class="icon-btn" style="display:none">✕</button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button id="btn-graph" class="tool-btn" title="知识图谱">🗺️ 图谱</button>
+        <button id="theme-toggle" class="icon-btn" title="切换主题">🌙</button>
+        <span class="note-count" id="note-count">0 条笔记</span>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Left Sidebar - File Tree -->
+      <aside id="sidebar">
+        <div class="sidebar-header">
+          <h3>📁 文件树</h3>
+          <div class="sidebar-actions">
+            <button id="btn-new-note" class="icon-btn" title="新建笔记">📝</button>
+            <button id="btn-new-folder" class="icon-btn" title="新建文件夹">📂</button>
+          </div>
+        </div>
+        <div class="sidebar-filters">
+          <select id="status-filter">
+            <option value="all">全部笔记</option>
+            <option value="published">已发布</option>
+            <option value="draft">草稿</option>
+          </select>
+        </div>
+        <nav id="file-tree" class="file-tree">
+          <!-- Dynamically rendered -->
+        </nav>
+        <div class="sidebar-footer">
+          <div class="storage-info">
+            <span>📊 存储:</span>
+            <span id="storage-used">0KB</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Editor Area -->
+      <main id="main-content">
+        <!-- No note selected -->
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">📝</div>
+          <h2>欢迎使用知库</h2>
+          <p>AI Agent 驱动的个人知识维基</p>
+          <div class="empty-actions">
+            <button id="empty-new-note" class="btn-primary">✨ 创建第一篇笔记</button>
+            <button id="empty-import" class="btn-secondary">📥 导入 Markdown</button>
+          </div>
+          <div class="quick-start">
+            <h4>快速上手</h4>
+            <ul>
+              <li>📝 用 Markdown 编写笔记</li>
+              <li>🔗 使用 [[笔记名]] 创建双向链接</li>
+              <li>🤖 AI 自动推荐标签和关联</li>
+              <li>📊 知识图谱可视化关联</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Editor View -->
+        <div id="editor-view" class="editor-view" style="display:none">
+          <div class="editor-toolbar">
+            <div class="toolbar-left">
+              <input type="text" id="note-title" placeholder="笔记标题..." class="note-title-input">
+              <span class="title-separator">/</span>
+              <span id="note-folder-breadcrumb" class="breadcrumb">根目录</span>
+            </div>
+            <div class="toolbar-right">
+              <span id="note-status-badge" class="status-badge">草稿</span>
+              <div class="view-toggle">
+                <button class="view-btn active" data-view="edit">编辑</button>
+                <button class="view-btn" data-view="split">分屏</button>
+                <button class="view-btn" data-view="preview">预览</button>
+              </div>
+              <button id="btn-save" class="btn-primary btn-sm">💾 保存</button>
+              <button id="btn-more" class="icon-btn">⋯</button>
+            </div>
+          </div>
+
+          <div class="editor-body" id="editor-body">
+            <div class="editor-pane" id="editor-pane">
+              <textarea id="editor-textarea" placeholder="开始用 Markdown 编写笔记...&#10;&#10;提示：用 [[笔记名]] 创建双向链接&#10;用 # 标签 给笔记打标签&#10;用 - [ ] 创建待办事项"></textarea>
+            </div>
+            <div class="preview-pane" id="preview-pane" style="display:none">
+              <div id="preview-content" class="markdown-body"></div>
+            </div>
+          </div>
+
+          <div class="editor-footer">
+            <div class="footer-left">
+              <span id="word-count">0 字</span>
+              <span class="footer-sep">·</span>
+              <span id="last-saved">未保存</span>
+            </div>
+            <div class="footer-right">
+              <button id="btn-promote" class="btn-success btn-sm" style="display:none">🚀 提升为正式笔记</button>
+              <button id="btn-demote" class="btn-warning btn-sm" style="display:none">📝 降为草稿</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Panel - Context -->
+      <aside id="right-panel" class="right-panel">
+        <div class="panel-section">
+          <div class="panel-header">
+            <h3>🏷️ 标签</h3>
+            <button id="btn-add-tag" class="icon-btn" title="添加标签">+</button>
+          </div>
+          <div id="tags-list" class="tags-list">
+            <span class="tag-placeholder">暂无标签</span>
+          </div>
+          <div id="ai-tags-suggestion" class="ai-suggestion" style="display:none">
+            <div class="ai-badge">🤖 AI 建议</div>
+            <div id="suggested-tags" class="suggested-tags"></div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h3>🔗 反向链接</h3>
+          </div>
+          <div id="backlinks-list" class="backlinks-list">
+            <span class="placeholder-text">暂无反向链接</span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h3>📎 关联笔记</h3>
+          </div>
+          <div id="related-notes" class="related-notes">
+            <span class="placeholder-text">暂无关联建议</span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h3>📋 元信息</h3>
+          </div>
+          <div id="note-meta" class="note-meta">
+            <span class="placeholder-text">选择笔记查看信息</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Knowledge Graph Modal -->
+    <div id="graph-modal" class="modal" style="display:none">
+      <div class="modal-overlay"></div>
+      <div class="modal-content graph-modal-content">
+        <div class="modal-header">
+          <h2>🗺️ 知识图谱</h2>
+          <div class="modal-actions">
+            <span id="graph-stats"></span>
+            <button id="btn-graph-close" class="icon-btn">✕</button>
+          </div>
+        </div>
+        <div class="graph-container">
+          <canvas id="graph-canvas"></canvas>
+        </div>
+        <div class="graph-legend">
+          <span><span class="legend-dot published"></span> 已发布</span>
+          <span><span class="legend-dot draft"></span> 草稿</span>
+          <span><span class="legend-line"></span> 链接</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Item Dialog -->
+    <div id="dialog-overlay" class="dialog-overlay" style="display:none">
+      <div class="dialog" id="dialog-box">
+        <div class="dialog-header">
+          <h3 id="dialog-title">新建项目</h3>
+          <button class="icon-btn dialog-close">✕</button>
+        </div>
+        <div class="dialog-body">
+          <div class="form-group">
+            <label for="dialog-input-name">名称</label>
+            <input type="text" id="dialog-input-name" placeholder="输入名称...">
+          </div>
+          <div class="form-group" id="dialog-folder-group">
+            <label for="dialog-select-folder">文件夹</label>
+            <select id="dialog-select-folder">
+              <option value="">根目录</option>
+            </select>
+          </div>
+          <div class="form-group" id="dialog-type-group">
+            <label>类型</label>
+            <div class="radio-group">
+              <label><input type="radio" name="dialog-type" value="note" checked> 📝 笔记</label>
+              <label><input type="radio" name="dialog-type" value="folder"> 📂 文件夹</label>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-secondary dialog-cancel">取消</button>
+          <button id="dialog-confirm" class="btn-primary">创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Import Dialog -->
+    <input type="file" id="import-file-input" accept=".md,.markdown" style="display:none">
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
